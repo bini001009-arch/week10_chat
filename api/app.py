@@ -21,11 +21,12 @@ from flask import send_file
 DATA_DIR = Path(os.environ.get('DATA_DIR', '/data'))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB = DATA_DIR / 'views.db'
+DOSES = ['2.5', '5', '7.5', '10', '12.5', '15']
 with sqlite3.connect(DB) as db:
     db.execute('CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY CHECK(id=1), count INTEGER NOT NULL)')
     db.execute('INSERT OR IGNORE INTO page_views VALUES (1, 0)')
     db.execute('CREATE TABLE IF NOT EXISTS slots (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, capacity INTEGER NOT NULL)')
-    db.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, slot_id INTEGER NOT NULL, nickname TEXT NOT NULL)')
+    db.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, slot_id INTEGER NOT NULL, nickname TEXT NOT NULL, dose TEXT NOT NULL)')
 
 @app.route('/api/views', methods=['GET', 'POST'])
 def views():
@@ -61,13 +62,16 @@ def reservations(slot_id):
             nickname = str(data.get('nickname', '')).strip()
             if not nickname:
                 return jsonify(error='닉네임을 입력하세요.'), 400
+            dose = str(data.get('dose', ''))
+            if dose not in DOSES:
+                return jsonify(error='용량을 선택하세요.'), 400
             if db.execute('SELECT 1 FROM reservations WHERE slot_id=? AND nickname=?', (slot_id, nickname)).fetchone():
                 return jsonify(error='이미 예약한 닉네임입니다.'), 409
-            done = db.execute('INSERT INTO reservations (slot_id, nickname) SELECT ?, ? WHERE (SELECT COUNT(*) FROM reservations WHERE slot_id=?) < ?', (slot_id, nickname, slot_id, slot[0]))
+            done = db.execute('INSERT INTO reservations (slot_id, nickname, dose) SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM reservations WHERE slot_id=?) < ?', (slot_id, nickname, dose, slot_id, slot[0]))
             if done.rowcount == 0:
                 return jsonify(error='예약이 마감되었습니다.'), 409
-        rows = db.execute('SELECT nickname FROM reservations WHERE slot_id=? ORDER BY id', (slot_id,)).fetchall()
-    names = [r[0] for r in rows]
+        rows = db.execute('SELECT nickname, dose FROM reservations WHERE slot_id=? ORDER BY id', (slot_id,)).fetchall()
+    names = [f'{r[0]} ({r[1]}mg)' for r in rows]
     return jsonify(capacity=slot[0], remaining=slot[0] - len(names), nicknames=names)  
 
 def bullets(value):
