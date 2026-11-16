@@ -50,6 +50,26 @@ def slots():
         rows = db.execute('SELECT id, name, capacity FROM slots').fetchall()
     return jsonify(slots=[{'id': r[0], 'name': r[1], 'capacity': r[2]} for r in rows])
 
+@app.route('/api/slots/<int:slot_id>/reservations', methods=['GET', 'POST'])
+def reservations(slot_id):
+    with sqlite3.connect(DB, timeout=10) as db:
+        slot = db.execute('SELECT capacity FROM slots WHERE id=?', (slot_id,)).fetchone()
+        if slot is None:
+            return jsonify(error='없는 시간대입니다.'), 404
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            nickname = str(data.get('nickname', '')).strip()
+            if not nickname:
+                return jsonify(error='닉네임을 입력하세요.'), 400
+            if db.execute('SELECT 1 FROM reservations WHERE slot_id=? AND nickname=?', (slot_id, nickname)).fetchone():
+                return jsonify(error='이미 예약한 닉네임입니다.'), 409
+            done = db.execute('INSERT INTO reservations (slot_id, nickname) SELECT ?, ? WHERE (SELECT COUNT(*) FROM reservations WHERE slot_id=?) < ?', (slot_id, nickname, slot_id, slot[0]))
+            if done.rowcount == 0:
+                return jsonify(error='예약이 마감되었습니다.'), 409
+        rows = db.execute('SELECT nickname FROM reservations WHERE slot_id=? ORDER BY id', (slot_id,)).fetchall()
+    names = [r[0] for r in rows]
+    return jsonify(capacity=slot[0], remaining=slot[0] - len(names), nicknames=names)  
+
 def bullets(value):
     # 화면 목록(li)은 innerText에서 줄 단위로 오므로 Markdown 목록으로 바꿉니다.
     lines = [line.strip() for line in value.splitlines() if line.strip()]
