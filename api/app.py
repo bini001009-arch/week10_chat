@@ -24,6 +24,8 @@ DB = DATA_DIR / 'views.db'
 with sqlite3.connect(DB) as db:
     db.execute('CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY CHECK(id=1), count INTEGER NOT NULL)')
     db.execute('INSERT OR IGNORE INTO page_views VALUES (1, 0)')
+    db.execute('CREATE TABLE IF NOT EXISTS slots (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, capacity INTEGER NOT NULL)')
+    db.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, slot_id INTEGER NOT NULL, nickname TEXT NOT NULL)')
 
 @app.route('/api/views', methods=['GET', 'POST'])
 def views():
@@ -33,6 +35,20 @@ def views():
             db.execute('UPDATE page_views SET count=count+1 WHERE id=1')
         count = db.execute('SELECT count FROM page_views WHERE id=1').fetchone()[0]
     return jsonify(views=count)
+
+@app.route('/api/slots', methods=['GET', 'POST'])
+def slots():
+    # UPDATE를 DB에서 ...
+    with sqlite3.connect(DB, timeout=10) as db:
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            name = str(data.get('name', '')).strip()
+            capacity = data.get('capacity')
+            if not name or not isinstance(capacity, int) or capacity < 1:
+                return jsonify(error='시간대 이름과 1명 이상의 정원을 입력하세요.'), 400
+            db.execute('INSERT INTO slots (name, capacity) VALUES (?, ?)', (name, capacity))
+        rows = db.execute('SELECT id, name, capacity FROM slots').fetchall()
+    return jsonify(slots=[{'id': r[0], 'name': r[1], 'capacity': r[2]} for r in rows])
 
 def bullets(value):
     # 화면 목록(li)은 innerText에서 줄 단위로 오므로 Markdown 목록으로 바꿉니다.
