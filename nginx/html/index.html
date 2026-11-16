@@ -20,20 +20,30 @@
   </header>
 
   <section>
-    <h2>1. 예약 시간대 등록</h2>
+    <h2>1. 예약 등록하기 (병원)</h2>
     <label for="slot-name">시간대 이름</label>
     <input id="slot-name" placeholder="예: 11/20 오전 상담">
     <label for="slot-capacity">정원</label>
     <input id="slot-capacity" type="number" min="1" placeholder="예: 3">
+        <label for="slot-price">1회 상담 가격 (엔)</label>
+    <input id="slot-price" type="number" min="1" placeholder="예: 19800">
+    <label for="slot-area">지역 (지도 위치)</label>
+    <select id="slot-area">
+      <option>신주쿠</option>
+      <option>시부야</option>
+      <option>긴자</option>
+      <option>우에노</option>
+      <option>이케부쿠로</option>
+    </select>
     <button id="slot-add">시간대 등록</button>
   </section>
 
   <section>
-    <h2>2. 예약하기</h2>
-    <label for="slot-select">시간대 선택</label>
-    <select id="slot-select"></select>
-    <label for="nickname">닉네임</label>
-    <input id="nickname" placeholder="닉네임만 입력 (실명·연락처 입력 금지)">
+    <h2>2. 예약하기 (사용자)</h2>
+    <div id="map" class="map"></div>
+    <p id="picked" class="picked">지도에서 병원을 선택하세요.</p>
+    <label for="nickname">예약자 성함</label>
+    <input id="nickname" placeholder="성함">
     <label for="dose">상담 희망 용량</label>
     <select id="dose">
       <option value="2.5">2.5mg</option>

@@ -22,10 +22,11 @@ DATA_DIR = Path(os.environ.get('DATA_DIR', '/data'))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB = DATA_DIR / 'views.db'
 DOSES = ['2.5', '5', '7.5', '10', '12.5', '15']
+AREAS = ['신주쿠', '시부야', '긴자', '우에노', '이케부쿠로']
 with sqlite3.connect(DB) as db:
     db.execute('CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY CHECK(id=1), count INTEGER NOT NULL)')
     db.execute('INSERT OR IGNORE INTO page_views VALUES (1, 0)')
-    db.execute('CREATE TABLE IF NOT EXISTS slots (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, capacity INTEGER NOT NULL)')
+    db.execute('CREATE TABLE IF NOT EXISTS slots (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, capacity INTEGER NOT NULL, price INTEGER NOT NULL, area TEXT NOT NULL)')
     db.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, slot_id INTEGER NOT NULL, nickname TEXT NOT NULL, dose TEXT NOT NULL)')
 
 @app.route('/api/views', methods=['GET', 'POST'])
@@ -45,11 +46,19 @@ def slots():
             data = request.get_json(silent=True) or {}
             name = str(data.get('name', '')).strip()
             capacity = data.get('capacity')
+            price = data.get('price')
+            area = data.get('area')
             if not name or not isinstance(capacity, int) or capacity < 1:
                 return jsonify(error='시간대 이름과 1명 이상의 정원을 입력하세요.'), 400
-            db.execute('INSERT INTO slots (name, capacity) VALUES (?, ?)', (name, capacity))
-        rows = db.execute('SELECT id, name, capacity FROM slots').fetchall()
-    return jsonify(slots=[{'id': r[0], 'name': r[1], 'capacity': r[2]} for r in rows])
+                if not isinstance(price, int) or price < 1:
+                    return jsonify(error='가격을 1엔 이상으로 입력하세요.'),400
+                if area not in AREAS:
+                    return jsonify(errer='지역을 선택하세요.'),400
+                if db.execute('SELECT 1 FROM slots WHERE area=?',(area)).fetchone():
+                    return jsonify(error='이 지역에는 이미 병원이 등록되어 있습니다.'),409
+            db.execute('INSERT INTO slots (name, capacity, price, area) VALUES (?, ?, ?, ?)', (name, capacity, price, area))
+        rows = db.execute('SELECT id, name, capacity, price, area, (SELECT COUNT(*) FROM reservations WHERE slot_id=slots.id) FROM slots').fetchall()
+    return jsonify(slots=[{'id': r[0], 'name': r[1], 'capacity': r[2], 'price': r[3], 'area': r[4], 'booked': r[5]} for r in rows])
 
 @app.route('/api/slots/<int:slot_id>/reservations', methods=['GET', 'POST'])
 def reservations(slot_id):
