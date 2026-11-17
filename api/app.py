@@ -40,7 +40,7 @@ def views():
 
 @app.route('/api/slots', methods=['GET', 'POST'])
 def slots():
-    # UPDATE를 DB에서 ...
+    # POST면 병원을 등록하고, 항상 병원 목록(예약된 수 포함)을 돌려줍니다.
     with sqlite3.connect(DB, timeout=10) as db:
         if request.method == 'POST':
             data = request.get_json(silent=True) or {}
@@ -49,13 +49,13 @@ def slots():
             price = data.get('price')
             area = data.get('area')
             if not name or not isinstance(capacity, int) or capacity < 1:
-                return jsonify(error='시간대 이름과 1명 이상의 정원을 입력하세요.'), 400
-                if not isinstance(price, int) or price < 1:
-                    return jsonify(error='가격을 1엔 이상으로 입력하세요.'),400
-                if area not in AREAS:
-                    return jsonify(errer='지역을 선택하세요.'),400
-                if db.execute('SELECT 1 FROM slots WHERE area=?',(area)).fetchone():
-                    return jsonify(error='이 지역에는 이미 병원이 등록되어 있습니다.'),409
+                return jsonify(error='병원 이름과 1명 이상의 정원을 입력하세요.'), 400
+            if not isinstance(price, int) or price < 1:
+                return jsonify(error='가격을 1엔 이상으로 입력하세요.'), 400
+            if area not in AREAS:
+                return jsonify(error='지역을 선택하세요.'), 400
+            if db.execute('SELECT 1 FROM slots WHERE area=?', (area,)).fetchone():
+                return jsonify(error='이 지역에는 이미 병원이 등록되어 있습니다.'), 409
             db.execute('INSERT INTO slots (name, capacity, price, area) VALUES (?, ?, ?, ?)', (name, capacity, price, area))
         rows = db.execute('SELECT id, name, capacity, price, area, (SELECT COUNT(*) FROM reservations WHERE slot_id=slots.id) FROM slots').fetchall()
     return jsonify(slots=[{'id': r[0], 'name': r[1], 'capacity': r[2], 'price': r[3], 'area': r[4], 'booked': r[5]} for r in rows])
@@ -65,17 +65,17 @@ def reservations(slot_id):
     with sqlite3.connect(DB, timeout=10) as db:
         slot = db.execute('SELECT capacity FROM slots WHERE id=?', (slot_id,)).fetchone()
         if slot is None:
-            return jsonify(error='없는 시간대입니다.'), 404
+            return jsonify(error='없는 병원입니다.'), 404
         if request.method == 'POST':
             data = request.get_json(silent=True) or {}
             nickname = str(data.get('nickname', '')).strip()
             if not nickname:
-                return jsonify(error='닉네임을 입력하세요.'), 400
+                return jsonify(error='예약자 성함을 입력하세요.'), 400
             dose = str(data.get('dose', ''))
             if dose not in DOSES:
                 return jsonify(error='용량을 선택하세요.'), 400
             if db.execute('SELECT 1 FROM reservations WHERE slot_id=? AND nickname=?', (slot_id, nickname)).fetchone():
-                return jsonify(error='이미 예약한 닉네임입니다.'), 409
+                return jsonify(error='이미 예약한 예약자입니다.'), 409
             done = db.execute('INSERT INTO reservations (slot_id, nickname, dose) SELECT ?, ?, ? WHERE (SELECT COUNT(*) FROM reservations WHERE slot_id=?) < ?', (slot_id, nickname, dose, slot_id, slot[0]))
             if done.rowcount == 0:
                 return jsonify(error='예약이 마감되었습니다.'), 409

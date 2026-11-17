@@ -10,6 +10,7 @@
 <body>
 <main>
   <header class="hero">
+    <img class="hero-icon" src="hero.png" alt="병원과 의사, 주사 펜 그림">
     <p class="eyebrow">CLOUD COMPUTING · AWS PROJECT</p>
     <h1>마운자로 진료 상담 선착순 예약</h1>
     <p class="tagline" lang="ja">韓国のマンジャロ規制緩和、誠におめでとうございます。</p>
@@ -19,13 +20,47 @@
     <small>수업 과제용 데모입니다. 실제 진료 예약이나 의약품 판매가 아닙니다.</small>
   </header>
 
+  <nav class="tabs">
+    <button id="tab-patient" class="tab active">환자용</button>
+    <button id="tab-clinic" class="tab">병원용</button>
+  </nav>
+
+  <div id="view-patient">
   <section>
-    <h2>1. 예약 등록하기 (병원)</h2>
-    <label for="slot-name">시간대 이름</label>
-    <input id="slot-name" placeholder="예: 11/20 오전 상담">
+    <h2>1. 병원 선택 · 예약하기</h2>
+    <div id="map" class="map"></div>
+    <p id="picked" class="picked">먼저 지도에서 병원을 선택하세요.</p>
+    <label for="nickname">예약자 성함</label>
+    <input id="nickname" placeholder="성함" disabled>
+    <label for="dose">상담 희망 용량</label>
+    <select id="dose" disabled>
+      <option value="2.5">2.5mg</option>
+      <option value="5">5mg</option>
+      <option value="7.5">7.5mg</option>
+      <option value="10">10mg</option>
+      <option value="12.5">12.5mg</option>
+      <option value="15">15mg</option>
+    </select>
+    <button id="reserve" disabled>예약하기</button>
+  </section>
+
+  <section>
+    <h2>2. 예약 현황</h2>
+    <p id="status">지도에서 병원을 선택하세요.</p>
+    <ul id="status-list"></ul>
+    <button id="status-refresh">현황 확인</button>
+  </section>
+  </div>
+
+  <div id="view-clinic" hidden>
+  <section>
+    <h2>병원 등록</h2>
+    <p class="hint">등록한 병원은 환자용 화면의 지도에 핀으로 추가됩니다.</p>
+    <label for="slot-name">병원 이름</label>
+    <input id="slot-name" placeholder="예: 사쿠라 클리닉">
     <label for="slot-capacity">정원</label>
     <input id="slot-capacity" type="number" min="1" placeholder="예: 3">
-        <label for="slot-price">1회 상담 가격 (엔)</label>
+    <label for="slot-price">1회 상담 가격 (엔)</label>
     <input id="slot-price" type="number" min="1" placeholder="예: 19800">
     <label for="slot-area">지역 (지도 위치)</label>
     <select id="slot-area">
@@ -35,33 +70,9 @@
       <option>우에노</option>
       <option>이케부쿠로</option>
     </select>
-    <button id="slot-add">시간대 등록</button>
+    <button id="slot-add">병원 등록</button>
   </section>
-
-  <section>
-    <h2>2. 예약하기 (사용자)</h2>
-    <div id="map" class="map"></div>
-    <p id="picked" class="picked">지도에서 병원을 선택하세요.</p>
-    <label for="nickname">예약자 성함</label>
-    <input id="nickname" placeholder="성함">
-    <label for="dose">상담 희망 용량</label>
-    <select id="dose">
-      <option value="2.5">2.5mg</option>
-      <option value="5">5mg</option>
-      <option value="7.5">7.5mg</option>
-      <option value="10">10mg</option>
-      <option value="12.5">12.5mg</option>
-      <option value="15">15mg</option>
-    </select>
-    <button id="reserve">예약하기</button>
-  </section>
-
-  <section>
-    <h2>3. 예약 현황</h2>
-    <p id="status">시간대를 선택하세요.</p>
-    <ul id="status-list"></ul>
-    <button id="status-refresh">현황 확인</button>
-  </section>
+  </div>
 
   <p id="slot-message" class="result" aria-live="polite"></p>
 
